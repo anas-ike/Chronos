@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Guild {
+  id                       String    @id
+  owner_id                 String
+  backup_frequency         String    @default("manual") // 'manual', 'daily', 'weekly'
+  backup_channel_id        String?
+  verify_channel_id        String?
+  verify_role_id           String?
+  verify_message           Json?
+  unnuke_cooldown_hours    Int       @default(24)
+  last_unnuke_started_at   DateTime?
+  last_unnuke_completed_at DateTime?
+  unnuke_state             String    @default("idle") // 'idle', 'in_progress'
+  created_at               DateTime  @default(now())
+
+  backups                  Backup[]
+  verified_users           VerifiedUser[]
+  restore_jobs             RestoreJob[]
+}
+
+model Backup {
+  id                 String   @id @default(uuid())
+  guild_id           String
+  taken_by           String
+  trigger            String   // 'manual', 'scheduled', 'pre_unnuke_safety'
+  server_name        String
+  server_icon_url    String?
+  server_banner_url  String?
+  server_settings    Json?
+  automod_rules      Json?
+  pinned             Boolean  @default(false)
+  size_bytes         Int      @default(0)
+  created_at         DateTime @default(now())
+
+  guild              Guild    @relation(fields: [guild_id], references: [id], onDelete: Cascade)
+  
+  channels           BackupChannel[]
+  roles              BackupRole[]
+  bans               BackupBan[]
+  restore_jobs       RestoreJob[]
+
+  @@index([guild_id])
+}
+
+model BackupChannel {
+  id                    String  @id @default(uuid())
+  backup_id             String
+  backup_local_ref      String  // e.g. "channel_1"
+  type                  String
+  name                  String
+  position              Int
+  parent_category_name  String?
+  topic                 String?
+  nsfw                  Boolean @default(false)
+  slowmode              Int     @default(0)
+  bitrate               Int?
+  user_limit            Int?
+  permission_overwrites Json?
+
+  backup                Backup  @relation(fields: [backup_id], references: [id], onDelete: Cascade)
+}
+
+model BackupRole {
+  id                   String  @id @default(uuid())
+  backup_id            String
+  backup_local_ref     String  // e.g. "role_1"
+  name                 String
+  color                Int
+  hoist                Boolean
+  mentionable          Boolean
+  position             Int
+  permissions_bitfield String
+  icon_url             String?
+
+  backup               Backup  @relation(fields: [backup_id], references: [id], onDelete: Cascade)
+}
+
+model BackupBan {
+  id           String  @id @default(uuid())
+  backup_id    String
+  user_id      String
+  username_tag String
+  reason       String?
+
+  backup       Backup  @relation(fields: [backup_id], references: [id], onDelete: Cascade)
+}
+
+model VerifiedUser {
+  id               String   @id @default(uuid())
+  guild_id         String
+  user_id          String
+  access_token     String   // Encrypted
+  refresh_token    String   // Encrypted
+  token_expires_at DateTime
+  scopes           String
+  verified_at      DateTime @default(now())
+
+  guild            Guild    @relation(fields: [guild_id], references: [id], onDelete: Cascade)
+
+  @@unique([guild_id, user_id])
+}
+
+model RestoreJob {
+  id               String    @id @default(uuid())
+  guild_id         String
+  backup_id        String
+  requested_by     String
+  scope            Json
+  status           String    @default("queued") // 'queued','running','completed','failed','cancelled'
+  started_at       DateTime  @default(now())
+  completed_at     DateTime?
+  cancel_requested Boolean   @default(false)
+  log              String[]  // Append-only logs for the dashboard
+
+  guild            Guild     @relation(fields: [guild_id], references: [id], onDelete: Cascade)
+  backup           Backup    @relation(fields: [backup_id], references: [id], onDelete: Cascade)
+}
