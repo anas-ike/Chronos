@@ -1,0 +1,131 @@
+<%- include('../partials/header') %>
+
+<div class="content-wrapper">
+    <div class="content-header">
+        <div class="container">
+            <div class="row mb-2 align-items-center">
+                <div class="col-sm-6">
+                    <h1 class="m-0"><%= userGuild.name %> <small class="text-muted">Dashboard</small></h1>
+                </div>
+                <div class="col-sm-6 text-right">
+                    <a href="/dashboard/<%= guildData.id %>/settings" class="btn btn-secondary mr-2"><i class="fas fa-cog"></i> Settings</a>
+                    <% if (isOwner) { %>
+                        <!-- Calls the webRoutes API to trigger internal bot engine -->
+                        <button id="btnCreateBackup" class="btn btn-primary" onclick="triggerBackup('<%= guildData.id %>')">
+                            <i class="fas fa-save"></i> Create Backup
+                        </button>
+                    <% } %>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="container">
+            <!-- Live Job Status Card -->
+            <% if (activeRestoreJob) { %>
+                <div class="alert alert-warning">
+                    <h5><i class="icon fas fa-exclamation-triangle"></i> Restoration In Progress</h5>
+                    Job ID: <code><%= activeRestoreJob.id %></code> is currently running. Please check bot logs or Discord for completion.
+                </div>
+            <% } %>
+
+            <!-- Metrics Row -->
+            <div class="row">
+                <div class="col-md-4 col-sm-6 col-12">
+                    <div class="info-box bg-dark border border-secondary">
+                        <span class="info-box-icon"><i class="fas fa-users text-success"></i></span>
+                        <div class="info-box-content">
+                            <span class="info-box-text">Verified Members</span>
+                            <span class="info-box-number"><%= verifiedCount %></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 col-sm-6 col-12">
+                    <div class="info-box bg-dark border border-secondary">
+                        <span class="info-box-icon"><i class="fas fa-hdd text-info"></i></span>
+                        <div class="info-box-content">
+                            <span class="info-box-text">Storage Used</span>
+                            <span class="info-box-number"><%= storageUsedMb %> MB</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4 col-sm-6 col-12">
+                    <div class="info-box bg-dark border border-secondary">
+                        <span class="info-box-icon"><i class="fas fa-clock text-warning"></i></span>
+                        <div class="info-box-content">
+                            <span class="info-box-text">Auto Frequency</span>
+                            <span class="info-box-number text-uppercase"><%= guildData.backup_frequency %></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Backup List -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h3 class="card-title">Stored Backups (<%= backups.length %>/10)</h3>
+                </div>
+                <div class="card-body table-responsive p-0">
+                    <table class="table table-hover text-nowrap">
+                        <thead>
+                            <tr>
+                                <th>Date (UTC)</th>
+                                <th>Trigger</th>
+                                <th>Size</th>
+                                <th>Status</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <% if (backups.length === 0) { %>
+                                <tr><td colspan="5" class="text-center py-4 text-muted">No backups found.</td></tr>
+                            <% } else { %>
+                                <% backups.forEach(b => { %>
+                                    <tr>
+                                        <td><%= b.created_at.toISOString().replace('T', ' ').substring(0, 19) %></td>
+                                        <td><span class="badge badge-<%= b.trigger === 'manual' ? 'primary' : (b.trigger === 'scheduled' ? 'info' : 'warning') %>"><%= b.trigger.toUpperCase() %></span></td>
+                                        <td><%= (b.size_bytes / (1024 * 1024)).toFixed(2) %> MB</td>
+                                        <td><%= b.pinned ? '📌 Pinned' : 'Standard' %></td>
+                                        <td>
+                                            <a href="/dashboard/<%= guildData.id %>/backup/<%= b.id %>" class="btn btn-sm btn-outline-info">Preview & Restore</a>
+                                        </td>
+                                    </tr>
+                                <% }) %>
+                            <% } %>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+<script>
+    async function triggerBackup(guildId) {
+        const btn = document.getElementById('btnCreateBackup');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        
+        try {
+            const res = await fetch(`/api/dashboard/${guildId}/backup`, { method: 'POST' });
+            const data = await res.json();
+            
+            if (data.success) {
+                alert('Backup created successfully!');
+                window.location.reload();
+            } else {
+                alert('Error: ' + data.error);
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-save"></i> Create Backup';
+            }
+        } catch (e) {
+            alert('Failed to contact server.');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-save"></i> Create Backup';
+        }
+    }
+</script>
+</body>
+</html>
