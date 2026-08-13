@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>ChronosRestore Dashboard</title>
+    
+    <!-- Google Font: Source Sans Pro -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Theme style (AdminLTE) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
+    
+    <!-- Pitch Black Theme Override -->
+    <link rel="stylesheet" href="/css/black-theme.css">
+</head>
+<body class="hold-transition layout-top-nav dark-mode">
+<div class="wrapper">
+    <!-- Navbar -->
+    <nav class="main-header navbar navbar-expand-md navbar-dark">
+        <div class="container">
+            <a href="/" class="navbar-brand">
+                <span class="brand-text font-weight-light"><strong>Chronos</strong>Restore</span>
+            </a>
+            
+            <ul class="order-1 order-md-3 navbar-nav navbar-no-expand ml-auto">
+                <% if (typeof user !== 'undefined' && user) { %>
+                    <li class="nav-item">
+                        <a href="/dashboard" class="nav-link">My Servers</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="/auth/logout" class="nav-link text-danger">Logout</a>
+                    </li>
+                <% } else { %>
+                    <li class="nav-item">
+                        <a href="/auth/discord" class="nav-link"><i class="fab fa-discord mr-1"></i> Login with Discord</a>
+                    </li>
+                <% } %>
+            </ul>
+        </div>
+    </nav>
