@@ -1,28 +1,37 @@
 require('dotenv').config();
 const { ShardingManager } = require('discord.js');
 const path = require('path');
+const logger = require('./src/helpers/logger');
+
+// Import the Express app (it handles its own app.listen via app.js)
+const expressApp = require('./dashboard/app'); 
 
 console.log('Starting ChronosRestore Sharding Manager...');
 
 const manager = new ShardingManager(path.join(__dirname, 'bot.js'), {
     token: process.env.BOT_TOKEN,
-    totalShards: 'auto', // Automatically calculates required shards based on guild count
-    respawn: true       // Restarts shards if they die
+    totalShards: 'auto', 
+    respawn: true       
 });
 
+// Pass the ShardingManager to the Express app so routes can cross-communicate with shards
+expressApp.set('shardingManager', manager);
+
 manager.on('shardCreate', shard => {
-    console.log(`[ShardingManager] Launched shard ${shard.id}`);
+    logger.info(`[ShardingManager] Launched shard ${shard.id}`, 'Manager');
     
     shard.on('death', process => {
-        console.error(`[ShardingManager] Shard ${shard.id} died unexpectedly (PID: ${process.pid})`);
+        logger.error(`[ShardingManager] Shard ${shard.id} died unexpectedly (PID: ${process.pid})`, 'Manager');
     });
     
     shard.on('disconnect', () => {
-        console.warn(`[ShardingManager] Shard ${shard.id} disconnected`);
+        logger.warn(`[ShardingManager] Shard ${shard.id} disconnected`, 'Manager');
     });
 });
 
-manager.spawn().catch(error => {
-    console.error('[ShardingManager] Fatal error spawning shards:', error);
+manager.spawn().then(() => {
+    logger.info('[ShardingManager] All shards spawned successfully.', 'Manager');
+}).catch(error => {
+    logger.error('[ShardingManager] Fatal error spawning shards:', error, 'Manager');
     process.exit(1);
 });
