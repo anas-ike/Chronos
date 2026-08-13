@@ -24,6 +24,7 @@ client.prefix = process.env.DEFAULT_PREFIX || '!';
 const loadCommands = require('./src/handlers/commandHandler');
 const loadEvents = require('./src/handlers/eventHandler');
 const initializeWorker = require('./src/backup/restoreBackup'); // BullMQ worker loader
+const loadScheduler = require('./src/handlers/scheduler'); // Background scheduler
 
 async function bootstrap() {
     try {
@@ -40,6 +41,9 @@ async function bootstrap() {
         
         // Boot the BullMQ worker daemon for this process
         initializeWorker(client);
+        
+        // Initialize the background scheduler for automated backups & OAuth token refresh
+        loadScheduler(client);
         
         // Connect to Discord
         await client.login(process.env.BOT_TOKEN);
